@@ -56,5 +56,4 @@ func main() {
     fmt.Printf("serve http at %s\n", os.Args[1])
     err := http.ListenAndServe(":" + os.Args[1], mux)
     if err != nil { panic (err) }
-
 }
