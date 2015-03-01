@@ -15,11 +15,9 @@ func hPost(w http.ResponseWriter, r *http.Request) {
     fobj, fh, err := r.FormFile("attachment")
     //_, fh, err := r.FormFile("attachment")
     if err == nil {
-        //fn = path.Base(fh.Filename)
         fmt.Println(fh.Filename)
         ns := strings.Split(fh.Filename, `\\`)
         fn = path.Base(ns[len(ns) - 1])
-        //ln := path.Join(".", "atta", fn)
         ln := path.Join(".", fn)
         fout, err := os.OpenFile(ln, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
         if err != nil {
@@ -52,7 +50,8 @@ func main() {
 
     mux := http.NewServeMux()
     mux.HandleFunc("/post", hPost)
-    mux.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./"))))
+    mux.Handle("/files/",
+               http.StripPrefix("/files/", http.FileServer(http.Dir("./"))))
     fmt.Printf("serve http at %s\n", os.Args[1])
     err := http.ListenAndServe(":" + os.Args[1], mux)
     if err != nil { panic (err) }
