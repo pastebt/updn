@@ -5,6 +5,7 @@ import (
     "io"
     "fmt"
     "path"
+    "sort"
     "strings"
     "net/http"
 )
@@ -39,6 +40,18 @@ Attachment: <input type=file name="attachment"><br>
 }
 
 
+type FI []os.FileInfo
+
+
+func (f FI)Len() int { return len(f) }
+func (f FI)Swap(i, j int) { f[i], f[j] = f[j], f[i] }
+func (f FI)Less(i, j int) bool {
+    a, b := f[i].IsDir(), f[j].IsDir()
+    if a != b { return a }
+    return f[i].Name() < f[j].Name()
+}
+
+
 type myFile struct {
     http.File
     dat []os.FileInfo
@@ -50,6 +63,7 @@ func (f *myFile)Readdir(n int) (fi []os.FileInfo, err error) {
     if f.cnt == 0 {
         f.dat, err = f.File.Readdir(-1)
         if err != nil { return }
+        sort.Sort(FI(f.dat))
     }
     l := len(f.dat)
     if f.cnt >= l {
