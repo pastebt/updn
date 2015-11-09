@@ -12,6 +12,12 @@ import (
 
 
 func hPost(w http.ResponseWriter, r *http.Request) {
+    hUpload(w, r, ".")
+    fmt.Fprintf(w, "</body></html>")
+}
+
+
+func hUpload(w http.ResponseWriter, r *http.Request, dir string) {
     fn := ""
     fobj, fh, err := r.FormFile("attachment")
     //_, fh, err := r.FormFile("attachment")
@@ -19,7 +25,7 @@ func hPost(w http.ResponseWriter, r *http.Request) {
         fmt.Println(fh.Filename)
         ns := strings.Split(fh.Filename, `\\`)
         fn = path.Base(ns[len(ns) - 1])
-        ln := path.Join(".", fn)
+        ln := path.Join(dir, fn)
         fout, err := os.OpenFile(ln, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
         if err != nil {
             fmt.Fprint(w, err)
@@ -29,14 +35,13 @@ func hPost(w http.ResponseWriter, r *http.Request) {
         io.Copy(fout, fobj)
     }
     ret := `<html><body>
-<form method="post" action="/post" enctype="multipart/form-data">
+<form method="post" action="/%s" enctype="multipart/form-data">
 Attachment: <input type=file name="attachment"><br>
 <input type=submit value="Post"><br>
 </form><br>
 %s
-</body>
-</html>`
-    fmt.Fprintf(w, ret, fn)
+`
+    fmt.Fprintf(w, ret, dir, fn)
 }
 
 
@@ -91,6 +96,18 @@ func (r Root)Open(name string) (http.File, error) {
 }
 
 
+var fileList http.Handler
+
+
+func hUpdn(w http.ResponseWriter, r *http.Request) {
+    p := path.Join("./", r.RequestURI)
+    hUpload(w, r, p + "/")
+    fileList.ServeHTTP(w, r)
+    //http.ServeFile(w, r, p)
+    fmt.Fprintf(w, "</body></html>")
+}
+
+
 func usage() {
     fmt.Printf("Usage: %s http_port\n", os.Args[0])
     os.Exit(1)
@@ -104,8 +121,9 @@ func main() {
     mux.HandleFunc("/post", hPost)
     mux.Handle("/files/",
                http.StripPrefix("/files/", http.FileServer(Root("./"))))
-    //           http.StripPrefix("/files/", http.FileServer(http.Dir("./"))))
+    //fileList = http.FileServer(Root("./"))
     fmt.Printf("serve http at %s\n", os.Args[1])
+    mux.HandleFunc("/", hUpdn)
     err := http.ListenAndServe(":" + os.Args[1], mux)
     if err != nil { panic (err) }
 }
