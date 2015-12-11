@@ -101,12 +101,16 @@ func (r Root)Open(name string) (http.File, error) {
 func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
     dirs, err := f.Readdir(-1)
-    if err != nil { //|| len(dirs) == 0 {
+    if err != nil && err != io.EOF { //|| len(dirs) == 0 {
+        fmt.Printf("dirs=%v, err=%v\n", dirs, err)
         return
     }
     hUpload(w, r, path.Join("./", r.RequestURI) + "/")
-    fmt.Fprintf(w, "<pre>\n")
+    fmt.Fprintf(w, `<table>
+    <thead><tr><th>Name</th><th>Last modified</th><th>Size</th></tr><thead>
+    <tbody>`)
     for _, d := range dirs {
+        fmt.Fprintf(w, "<tr>\n")
         name := d.Name()
         if d.IsDir() {
             name += "/"
@@ -115,10 +119,13 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
         // part of the URL path, and not indicate the start of a query
         // string or fragment.
         url := url.URL{Path: name}
-        fmt.Fprintf(w, "<a href=\"%s\">%s</a>\n",
+        fmt.Fprintf(w, "<td><a href=\"%s\">%s</a></td>\n",
                     url.String(), html.EscapeString(name)) //htmlReplacer.Replace(name))
+        fmt.Fprintf(w, "<td>%s</td>\n", d.ModTime().Format("2006-01-02 15:04:05"))
+        fmt.Fprintf(w, "<td align='right'>%d</td>\n", d.Size())
+        fmt.Fprintf(w, "</tr>\n")
     }
-    fmt.Fprintf(w, "</pre>\n</body></html>")
+    fmt.Fprintf(w, "</tbody></table>\n</body></html>")
 }
 
 
@@ -155,6 +162,7 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 
+/*
 var fileList http.Handler
 
 
@@ -165,6 +173,7 @@ func hUpdn(w http.ResponseWriter, r *http.Request) {
     //http.ServeFile(w, r, p)
     fmt.Fprintf(w, "</body></html>")
 }
+*/
 
 
 func usage() {
