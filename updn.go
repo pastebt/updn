@@ -175,8 +175,11 @@ func hUpdn(w http.ResponseWriter, r *http.Request) {
 }
 */
 
+//var html_tpl string
+
 
 func usage() {
+    //fmt.Printf("%s\n", html_tpl)
     fmt.Printf("Usage: %s http_port\n", os.Args[0])
     os.Exit(1)
 }
