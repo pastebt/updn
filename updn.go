@@ -121,8 +121,9 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
         url := url.URL{Path: name}
         fmt.Fprintf(w, "<td><a href=\"%s\">%s</a></td>\n",
                     url.String(), html.EscapeString(name)) //htmlReplacer.Replace(name))
-        fmt.Fprintf(w, "<td>%s</td>\n", d.ModTime().Format("2006-01-02 15:04:05"))
-        fmt.Fprintf(w, "<td align='right'>%d</td>\n", d.Size())
+        fmt.Fprintf(w, "<td style='padding-left:1em;'>%s</td>\n",
+                    d.ModTime().Format("2006-01-02 15:04:05"))
+        fmt.Fprintf(w, "<td align='right' style='padding-left:1em;'>%d</td>\n", d.Size())
         fmt.Fprintf(w, "</tr>\n")
     }
     fmt.Fprintf(w, "</tbody></table>\n</body></html>")
