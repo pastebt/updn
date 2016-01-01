@@ -22,11 +22,16 @@ func hPost(w http.ResponseWriter, r *http.Request) {
 func hUpload(w http.ResponseWriter, r *http.Request, dir string) {
     fn := ""
     fobj, fh, err := r.FormFile("attachment")
-    //_, fh, err := r.FormFile("attachment")
     if err == nil {
         fmt.Println(fh.Filename)
+        // win7 upload filename with whole path, cut dir part
         ns := strings.Split(fh.Filename, `\\`)
         fn = path.Base(ns[len(ns) - 1])
+        // win7 file name can not have these chars
+        // replace them with '_'
+        fs := strings.FieldsFunc(fn, func (c rune) bool {
+              return strings.ContainsRune(`\\/:*?"<>|`, c)})
+        fn = strings.Join(fs, "_")
         ln := path.Join(dir, fn)
         fout, err := os.OpenFile(ln, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
         if err != nil {
