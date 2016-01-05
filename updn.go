@@ -28,6 +28,7 @@ func hUpload(w http.ResponseWriter, r *http.Request, dir string) {
         ns := strings.Split(fh.Filename, `\\`)
         fn = path.Base(ns[len(ns) - 1])
         ln := path.Join(dir, fn)
+        //println("ln =", ln)
         fout, err := os.OpenFile(ln, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
         if err != nil {
             fmt.Fprint(w, err)
@@ -105,7 +106,14 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
         fmt.Printf("dirs=%v, err=%v\n", dirs, err)
         return
     }
-    hUpload(w, r, path.Join("./", r.RequestURI) + "/")
+    //println("r.RequestURI = ", r.RequestURI)
+    rr, err := url.QueryUnescape(r.RequestURI)
+    if err != nil {
+        fmt.Printf("QueryUnescape, %v, err = %v", r.RequestURI, err)
+        return
+    }
+    //println("rr = ", rr)
+    hUpload(w, r, path.Join("./", rr) + "/")
     fmt.Fprintf(w, `<table>
     <thead><tr><th>Name</th><th>Last modified</th><th>Size</th></tr><thead>
     <tbody>`)
@@ -181,13 +189,13 @@ func hUpdn(w http.ResponseWriter, r *http.Request) {
 
 func usage() {
     //fmt.Printf("%s\n", html_tpl)
-    fmt.Printf("Usage: %s http_port\n", os.Args[0])
+    fmt.Printf("Usage: %s http_port [template_file]\n", os.Args[0])
     os.Exit(1)
 }
 
 
 func main() {
-    if len(os.Args) != 2 { usage() }
+    if len(os.Args) != 2 && len(os.Args) != 3 { usage() }
 
     mux := http.NewServeMux()
     mux.HandleFunc("/post", hPost)
