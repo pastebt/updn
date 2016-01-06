@@ -104,6 +104,28 @@ func (r Root)Open(name string) (http.File, error) {
 }
 
 
+func showSize(i int64) (s string) {
+    if i < 10000 {
+        s = fmt.Sprintf("%d", i)
+        return
+    }
+    k := i / 1000
+    //l = fmt.Sprintf("%d", k)
+    ss := make([]string, 0, 3)
+    if k > 1000000 {
+        ss = append(ss, fmt.Sprintf("%d", k / 1000000))
+        k = k % 1000000
+    }
+    if k > 1000 {
+        ss = append(ss, fmt.Sprintf("%d", k / 1000))
+        k = k % 1000
+    }
+    ss = append(ss, fmt.Sprintf("%dKB", k))
+    s = strings.Join(ss, ",")
+    return
+}
+
+
 func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
     dirs, err := f.Readdir(-1)
@@ -136,7 +158,8 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
                     url.String(), html.EscapeString(name)) //htmlReplacer.Replace(name))
         fmt.Fprintf(w, "<td style='padding-left:1em;'>%s</td>\n",
                     d.ModTime().Format("2006-01-02 15:04:05"))
-        fmt.Fprintf(w, "<td align='right' style='padding-left:1em;'>%d</td>\n", d.Size())
+        fmt.Fprintf(w, "<td align='right' style='padding-left:1em;'>%s</td>\n",
+                    showSize(d.Size()))
         fmt.Fprintf(w, "</tr>\n")
     }
     fmt.Fprintf(w, "</tbody></table>\n</body></html>")
