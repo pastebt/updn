@@ -19,19 +19,25 @@ func hPost(w http.ResponseWriter, r *http.Request) {
 }
 
 
+func normWinName(src string) string {
+    // win7 file name can not have these chars
+    // replace them with '_'
+    fs := strings.FieldsFunc(src, func (c rune) bool {
+          return strings.ContainsRune(`\\/:*?"<>|`, c)})
+    return strings.Join(fs, "_")
+}
+
+
 func hUpload(w http.ResponseWriter, r *http.Request, dir string) {
-    fn := ""
+    msg := ""
     fobj, fh, err := r.FormFile("attachment")
     if err == nil {
+        defer fobj.Close()
         fmt.Println(fh.Filename)
         // win7 upload filename with whole path, cut dir part
         ns := strings.Split(fh.Filename, `\\`)
-        fn = path.Base(ns[len(ns) - 1])
-        // win7 file name can not have these chars
-        // replace them with '_'
-        fs := strings.FieldsFunc(fn, func (c rune) bool {
-              return strings.ContainsRune(`\\/:*?"<>|`, c)})
-        fn = strings.Join(fs, "_")
+        fn := path.Base(ns[len(ns) - 1])
+        fn = normWinName(fn)
         ln := path.Join(dir, fn)
         //println("ln =", ln)
         fout, err := os.OpenFile(ln, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
@@ -41,15 +47,28 @@ func hUpload(w http.ResponseWriter, r *http.Request, dir string) {
         }
         defer fout.Close()
         io.Copy(fout, fobj)
+        msg = "upload file " + fn + "<br>"
+    } else {
+        nf := strings.TrimSpace(r.FormValue("newfolder"))
+        if nf != "" {
+            nf = normWinName(nf)
+            dn := path.Join(dir, nf)
+            if err := os.Mkdir(dn, 0700); err != nil {
+                fmt.Fprint(w, err)
+                return
+            }
+            msg = "new folder " + nf + "<br>"
+        }
     }
     ret := `<html><body>
 <form method="post" action="/%s" enctype="multipart/form-data">
 Attachment: <input type=file name="attachment"><br>
+New Folder: <input type=input name="newfolder"><br>
 <input type=submit value="Post"><br>
 </form><br>
 %s
 `
-    fmt.Fprintf(w, ret, dir, fn)
+    fmt.Fprintf(w, ret, dir, msg)
 }
 
 
@@ -120,7 +139,7 @@ func showSize(i int64) (s string) {
         ss = append(ss, fmt.Sprintf("%d", k / 1000))
         k = k % 1000
     }
-    ss = append(ss, fmt.Sprintf("%dKB", k))
+    ss = append(ss, fmt.Sprintf("%d KB", k))
     s = strings.Join(ss, ",")
     return
 }
@@ -128,19 +147,20 @@ func showSize(i int64) (s string) {
 
 func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
-    dirs, err := f.Readdir(-1)
-    if err != nil && err != io.EOF { //|| len(dirs) == 0 {
-        fmt.Printf("dirs=%v, err=%v\n", dirs, err)
-        return
-    }
-    //println("r.RequestURI = ", r.RequestURI)
+
     rr, err := url.QueryUnescape(r.RequestURI)
     if err != nil {
         fmt.Printf("QueryUnescape, %v, err = %v", r.RequestURI, err)
         return
     }
-    //println("rr = ", rr)
+    // handle command/upload
     hUpload(w, r, path.Join("./", rr) + "/")
+    // list files
+    dirs, err := f.Readdir(-1)
+    if err != nil && err != io.EOF { //|| len(dirs) == 0 {
+        fmt.Printf("dirs=%v, err=%v\n", dirs, err)
+        return
+    }
     fmt.Fprintf(w, `<table>
     <thead><tr><th>Name</th><th>Last modified</th><th>Size</th></tr><thead>
     <tbody>`)
@@ -158,8 +178,8 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
                     url.String(), html.EscapeString(name)) //htmlReplacer.Replace(name))
         fmt.Fprintf(w, "<td style='padding-left:1em;'>%s</td>\n",
                     d.ModTime().Format("2006-01-02 15:04:05"))
-        fmt.Fprintf(w, "<td align='right' style='padding-left:1em;'>%s</td>\n",
-                    showSize(d.Size()))
+        fmt.Fprintf(w, "<td align='right' title='%d' style='padding-left:1em;'>%s</td>\n",
+                    d.Size(), showSize(d.Size()))
         fmt.Fprintf(w, "</tr>\n")
     }
     fmt.Fprintf(w, "</tbody></table>\n</body></html>")
