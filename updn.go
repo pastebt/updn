@@ -128,7 +128,7 @@ func showSize(i int64) (s string) {
         s = fmt.Sprintf("%d", i)
         return
     }
-    k := i / 1000
+    k := i / 1024
     //l = fmt.Sprintf("%d", k)
     ss := make([]string, 0, 3)
     if k > 1000000 {
