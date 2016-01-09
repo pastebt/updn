@@ -128,18 +128,26 @@ func showSize(i int64) (s string) {
         s = fmt.Sprintf("%d", i)
         return
     }
-    k := i / 1024
+    //k := i / 1024
     //l = fmt.Sprintf("%d", k)
     ss := make([]string, 0, 3)
-    if k > 1000000 {
-        ss = append(ss, fmt.Sprintf("%d", k / 1000000))
-        k = k % 1000000
+    //if k > 1000000 {
+    //    ss = append(ss, fmt.Sprintf("%d", k / 1000000))
+    //    k = k % 1000000
+    //}
+    //if k > 1000 {
+    //    ss = append(ss, fmt.Sprintf("%d", k / 1000))
+    //    k = k % 1000
+    //}
+    //ss = append(ss, fmt.Sprintf("%d KB", k))
+    //s = fmt.Sprintf("%d", k)
+    s = fmt.Sprintf("%0.1f", float64(i) / 1024.0)
+    if len(s) > 4 {
+        s = s[:len(s) - 2]
+        if len(s) > 6 { ss, s = append(ss, s[:len(s) - 6]), s[len(s) - 6:] }
+        if len(s) > 3 { ss, s = append(ss, s[:len(s) - 3]), s[len(s) - 3:] }
     }
-    if k > 1000 {
-        ss = append(ss, fmt.Sprintf("%d", k / 1000))
-        k = k % 1000
-    }
-    ss = append(ss, fmt.Sprintf("%d KB", k))
+    ss = append(ss, s + " KB")
     s = strings.Join(ss, ",")
     return
 }
