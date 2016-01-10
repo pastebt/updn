@@ -141,9 +141,13 @@ func showSize(i int64) (s string) {
     //}
     //ss = append(ss, fmt.Sprintf("%d KB", k))
     //s = fmt.Sprintf("%d", k)
-    s = fmt.Sprintf("%0.1f", float64(i) / 1024.0)
-    if len(s) > 4 {
-        s = s[:len(s) - 2]
+    //s = fmt.Sprintf("%0.1f", float64(i) / 1024.0)
+    //if len(s) > 4 {
+    if i < 102400 { 
+        s = fmt.Sprintf("%0.1f", float64(i) / 1024.0)
+    } else {
+        s = fmt.Sprintf("%d", (i + 512) / 1024)
+        //s = s[:len(s) - 2]
         if len(s) > 6 { ss, s = append(ss, s[:len(s) - 6]), s[len(s) - 6:] }
         if len(s) > 3 { ss, s = append(ss, s[:len(s) - 3]), s[len(s) - 3:] }
     }
