@@ -128,26 +128,11 @@ func showSize(i int64) (s string) {
         s = fmt.Sprintf("%d", i)
         return
     }
-    //k := i / 1024
-    //l = fmt.Sprintf("%d", k)
     ss := make([]string, 0, 3)
-    //if k > 1000000 {
-    //    ss = append(ss, fmt.Sprintf("%d", k / 1000000))
-    //    k = k % 1000000
-    //}
-    //if k > 1000 {
-    //    ss = append(ss, fmt.Sprintf("%d", k / 1000))
-    //    k = k % 1000
-    //}
-    //ss = append(ss, fmt.Sprintf("%d KB", k))
-    //s = fmt.Sprintf("%d", k)
-    //s = fmt.Sprintf("%0.1f", float64(i) / 1024.0)
-    //if len(s) > 4 {
     if i < 102400 { 
         s = fmt.Sprintf("%0.1f", float64(i) / 1024.0)
     } else {
         s = fmt.Sprintf("%d", (i + 512) / 1024)
-        //s = s[:len(s) - 2]
         if len(s) > 6 { ss, s = append(ss, s[:len(s) - 6]), s[len(s) - 6:] }
         if len(s) > 3 { ss, s = append(ss, s[:len(s) - 3]), s[len(s) - 3:] }
     }
@@ -185,12 +170,13 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
         // name may contain '?' or '#', which must be escaped to remain
         // part of the URL path, and not indicate the start of a query
         // string or fragment.
-        url := url.URL{Path: name}
+        us := url.URL{Path: name}
         fmt.Fprintf(w, "<td><a href=\"%s\">%s</a></td>\n",
-                    url.String(), html.EscapeString(name)) //htmlReplacer.Replace(name))
+                    us.String(), html.EscapeString(name))
         fmt.Fprintf(w, "<td style='padding-left:1em;'>%s</td>\n",
                     d.ModTime().Format("2006-01-02 15:04:05"))
-        fmt.Fprintf(w, "<td align='right' title='%d' style='padding-left:1em;'>%s</td>\n",
+        fmt.Fprintf(w, "<td align='right' title='%d' " +
+                       "style='padding-left:1em;'>%s</td>\n",
                     d.Size(), showSize(d.Size()))
         fmt.Fprintf(w, "</tr>\n")
     }
