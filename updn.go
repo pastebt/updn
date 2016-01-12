@@ -10,14 +10,16 @@ import (
     "strings"
     "net/url"
     "net/http"
-    "path/filepath"
+    //"path/filepath"
 )
 
 
+/*
 func hPost(w http.ResponseWriter, r *http.Request) {
     hUpload(w, r, ".")
     fmt.Fprintf(w, "</body></html>")
 }
+*/
 
 
 func normWinName(src string) string {
@@ -207,12 +209,9 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
     var ddot os.FileInfo
-    if _, ok := f.(*myFile); ok {   // take care about ..
-        //print("is myFile")
-        if c := path.Clean("/" + name); len(c) > 1 {
-            if fdot, err := fh.root.Open(filepath.Join(c, "..")); err == nil {
-                ddot, _ = fdot.Stat()
-            }
+    if len(name) > 1 {
+        if fdot, err := fh.root.Open(name + "/.."); err == nil {
+            ddot, _ = fdot.Stat()
         }
     }
     defer f.Close()
@@ -258,9 +257,9 @@ func main() {
     if len(os.Args) != 2 && len(os.Args) != 3 { usage() }
 
     mux := http.NewServeMux()
-    mux.HandleFunc("/post", hPost)
-    mux.Handle("/files/",
-               http.StripPrefix("/files/", http.FileServer(Root("./"))))
+    //mux.HandleFunc("/post", hPost)
+    //mux.Handle("/files/",
+    //           http.StripPrefix("/files/", http.FileServer(Root("./"))))
     //fileList = http.FileServer(Root("./"))
     fmt.Printf("serve http at %s\n", os.Args[1])
     //mux.HandleFunc("/", hUpdn)
