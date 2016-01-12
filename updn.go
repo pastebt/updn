@@ -10,6 +10,7 @@ import (
     "strings"
     "net/url"
     "net/http"
+    "path/filepath"
 )
 
 
@@ -142,7 +143,7 @@ func showSize(i int64) (s string) {
 }
 
 
-func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
+func dirList(w http.ResponseWriter, r *http.Request, f http.File, ddot os.FileInfo) {
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
     rr, err := url.QueryUnescape(r.RequestURI)
@@ -161,6 +162,10 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
     fmt.Fprintf(w, `<table>
     <thead><tr><th>Name</th><th>Last modified</th><th>Size</th></tr><thead>
     <tbody>`)
+    if ddot != nil {
+        fmt.Fprintf(w, "<tr>\n<td><a href=\"../\">..</a></td>\n")
+        fmt.Fprintf(w, "<td/><td/>\n</tr>\n")
+    }
     for _, d := range dirs {
         fmt.Fprintf(w, "<tr>\n")
         name := d.Name()
@@ -201,6 +206,15 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Something Wrong", http.StatusInternalServerError)
         return
     }
+    var ddot os.FileInfo
+    if _, ok := f.(*myFile); ok {   // take care about ..
+        //print("is myFile")
+        if c := path.Clean("/" + name); len(c) > 1 {
+            if fdot, err := fh.root.Open(filepath.Join(c, "..")); err == nil {
+                ddot, _ = fdot.Stat()
+            }
+        }
+    }
     defer f.Close()
 
     d, err1 := f.Stat()
@@ -210,7 +224,7 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
     }
 
    if d.IsDir() {
-        dirList(w, r, f)
+        dirList(w, r, f, ddot)
         return
     }
     http.ServeContent(w, r, d.Name(), d.ModTime(), f)
