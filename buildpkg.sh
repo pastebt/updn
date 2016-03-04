@@ -4,9 +4,9 @@ if [ -z "$1" ]; then
         exit 2
 else
         export GOOS=$1
-        if [ "$GOOS" = "windows" ]; then
+        #if [ "$GOOS" = "windows" ]; then
                 export CGO_ENABLED=0
-        fi
+        #fi
 fi
 shift
 if [ -n "$1" ]; then
