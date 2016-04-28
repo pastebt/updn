@@ -3,6 +3,7 @@ package main
 import (
     "os"
     "io"
+    "io/ioutil"
     "fmt"
     "path"
     "sort"
@@ -31,38 +32,93 @@ func normWinName(src string) string {
 }
 
 
-func hUpload(w http.ResponseWriter, r *http.Request, dir string) {
-    msg := ""
-    fobj, fh, err := r.FormFile("attachment")
-    if err == nil {
-        defer fobj.Close()
-        fmt.Println(fh.Filename)
-        // win7 upload filename with whole path, cut dir part
-        ns := strings.Split(fh.Filename, `\\`)
-        fn := path.Base(ns[len(ns) - 1])
-        fn = normWinName(fn)
-        ln := path.Join(dir, fn)
-        //println("ln =", ln)
-        fout, err := os.OpenFile(ln, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+func hUpload(w http.ResponseWriter, r *http.Request, dir string) (msg string) {
+    ct := r.Header.Get("Content-Type")
+    if r.Method != "POST" || !strings.HasPrefix(ct, "multipart/") { return }
+    mr, err := r.MultipartReader()
+    if err != nil {
+        msg = "MultipartReader: " + err.Error()
+        return
+    }
+    for {
+        p, err := mr.NextPart()
+        if err == io.EOF { break }
         if err != nil {
-            fmt.Fprint(w, err)
+            msg = "NextPart: " + err.Error()
             return
         }
-        defer fout.Close()
-        io.Copy(fout, fobj)
-        msg = "upload file " + fn + "<br>"
-    } else {
-        nf := strings.TrimSpace(r.FormValue("newfolder"))
-        if nf != "" {
+        name := p.FormName()
+        switch name {
+        case "newfolder":
+            bn, err := ioutil.ReadAll(p)
+            if err != nil {
+                msg = "newfolder ReadAll: " + err.Error()
+                return
+            }
+            nf := strings.TrimSpace(string(bn))
+            if len(nf) == 0 { continue }
             nf = normWinName(nf)
             dn := path.Join(dir, nf)
             if err := os.Mkdir(dn, 0700); err != nil {
-                fmt.Fprint(w, err)
+                //fmt.Fprint(w, err)
+                msg = "newfolder Mkdir: " + err.Error()
                 return
             }
             msg = "new folder " + nf + "<br>"
+            return
+        case "attachment":
+            fn := strings.TrimSpace(p.FileName())
+            if len(fn) == 0 { continue }
+            ns := strings.Split(fn, `\\`)
+            fn = path.Join(dir, normWinName(path.Base(ns[len(ns) - 1])))
+            fout, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+            if err != nil {
+                msg = "attachment OpenFile: " + err.Error()
+                return
+            }
+            defer fout.Close()
+            io.Copy(fout, p)
+            msg = "upload file " + fn + "<br>"
+            return
         }
     }
+    return
+}
+//    fobj, fh, err := r.FormFile("attachment")
+//    if err == nil {
+//        defer fobj.Close()
+//        fmt.Println(fh.Filename)
+//        // win7 upload filename with whole path, cut dir part
+//        ns := strings.Split(fh.Filename, `\\`)
+//        fn := path.Base(ns[len(ns) - 1])
+//        fn = normWinName(fn)
+//        ln := path.Join(dir, fn)
+//        //println("ln =", ln)
+//        fout, err := os.OpenFile(ln, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+//        if err != nil {
+//            fmt.Fprint(w, err)
+//            return
+//        }
+//        defer fout.Close()
+//        io.Copy(fout, fobj)
+//        msg = "upload file " + fn + "<br>"
+//    } else {
+//        nf := strings.TrimSpace(r.FormValue("newfolder"))
+//        if nf != "" {
+//            nf = normWinName(nf)
+//            dn := path.Join(dir, nf)
+//            if err := os.Mkdir(dn, 0700); err != nil {
+//                fmt.Fprint(w, err)
+//                return
+//            }
+//            msg = "new folder " + nf + "<br>"
+//        }
+//    }
+//}
+
+
+func hUploadPage(w http.ResponseWriter, r *http.Request, dir string) {
+    msg := hUpload(w, r, dir)
     ret := `<html><body>
 <form method="post" action="/%s" enctype="multipart/form-data">
 Attachment: <input type=file name="attachment"><br>
@@ -154,7 +210,7 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File, ddot os.FileIn
         return
     }
     // handle command/upload
-    hUpload(w, r, path.Join("./", rr) + "/")
+    hUploadPage(w, r, path.Join("./", rr) + "/")
     // list files
     dirs, err := f.Readdir(-1)
     if err != nil && err != io.EOF { //|| len(dirs) == 0 {
@@ -230,22 +286,6 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 
-/*
-var fileList http.Handler
-
-
-func hUpdn(w http.ResponseWriter, r *http.Request) {
-    p := path.Join("./", r.RequestURI)
-    hUpload(w, r, p + "/")
-    fileList.ServeHTTP(w, r)
-    //http.ServeFile(w, r, p)
-    fmt.Fprintf(w, "</body></html>")
-}
-*/
-
-//var html_tpl string
-
-
 func usage() {
     //fmt.Printf("%s\n", html_tpl)
     fmt.Printf("Usage: %s http_port [template_file]\n", os.Args[0])
@@ -257,12 +297,7 @@ func main() {
     if len(os.Args) != 2 && len(os.Args) != 3 { usage() }
 
     mux := http.NewServeMux()
-    //mux.HandleFunc("/post", hPost)
-    //mux.Handle("/files/",
-    //           http.StripPrefix("/files/", http.FileServer(Root("./"))))
-    //fileList = http.FileServer(Root("./"))
     fmt.Printf("serve http at %s\n", os.Args[1])
-    //mux.HandleFunc("/", hUpdn)
     fh := fileHandler{Root("./")}
     mux.Handle("/", &fh)
     err := http.ListenAndServe(":" + os.Args[1], mux)
