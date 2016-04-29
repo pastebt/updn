@@ -15,14 +15,6 @@ import (
 )
 
 
-/*
-func hPost(w http.ResponseWriter, r *http.Request) {
-    hUpload(w, r, ".")
-    fmt.Fprintf(w, "</body></html>")
-}
-*/
-
-
 func normWinName(src string) string {
     // win7 file name can not have these chars
     // replace them with '_'
@@ -204,13 +196,21 @@ func showSize(i int64) (s string) {
 func dirList(w http.ResponseWriter, r *http.Request, f http.File, ddot os.FileInfo) {
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-    rr, err := url.QueryUnescape(r.RequestURI)
+    //rr, err := url.QueryUnescape(r.RequestURI)
+    rr, err := url.QueryUnescape(r.URL.Path)
     if err != nil {
         fmt.Printf("QueryUnescape, %v, err = %v", r.RequestURI, err)
         return
     }
     // handle command/upload
-    hUploadPage(w, r, path.Join("./", rr) + "/")
+    d := path.Join("./", rr) + "/"
+    q := r.URL.Query().Get("who")
+    if q == "poster" {
+        hUpload(w, r, d)
+        return
+    } else {
+        hUploadPage(w, r, d)
+    }
     // list files
     dirs, err := f.Readdir(-1)
     if err != nil && err != io.EOF { //|| len(dirs) == 0 {
