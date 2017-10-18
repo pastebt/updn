@@ -180,7 +180,7 @@ func showSize(i int64) (s string) {
         return
     }
     ss := make([]string, 0, 3)
-    if i < 102400 { 
+    if i < 102400 {
         s = fmt.Sprintf("%0.1f", float64(i) / 1024.0)
     } else {
         s = fmt.Sprintf("%d", (i + 512) / 1024)
@@ -261,7 +261,8 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
     name := path.Clean(upath)
     f, err := fh.root.Open(name)
     if err != nil {
-        http.Error(w, "Something Wrong", http.StatusInternalServerError)
+        http.Error(w, "Something Wrong1", http.StatusInternalServerError)
+        fmt.Printf("name=%#v\nfh.root=%#v\nerr=%#v\n", name, fh.root, err)
         return
     }
     var ddot os.FileInfo
@@ -274,7 +275,8 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     d, err1 := f.Stat()
     if err1 != nil {
-        http.Error(w, "Something Wrong", http.StatusInternalServerError)
+        http.Error(w, "Something Wrong2", http.StatusInternalServerError)
+        fmt.Printf("f=%#v\nerr=%#v\n", f, err)
         return
     }
 
