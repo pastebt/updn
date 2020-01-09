@@ -246,8 +246,8 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File, ddot os.FileIn
         // string or fragment.
         us := url.URL{Path: name}
         oc := ""
-        switch path.Ext(name) {
-        case ".rmvb", ".mkv", ".flv", ".webm":
+        switch strings.ToLower(path.Ext(name)) {
+        case ".rmvb", ".mkv", ".flv", ".webm", ".avi", ".wmv", ".iso":
             oc = ` onclick="return notice(this);"`
         default:
             oc = ""
