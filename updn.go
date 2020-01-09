@@ -111,7 +111,18 @@ func hUpload(w http.ResponseWriter, r *http.Request, dir string) (msg string) {
 
 func hUploadPage(w http.ResponseWriter, r *http.Request, dir string) {
     msg := hUpload(w, r, dir)
-    ret := `<html><body>
+    ret := `<html>
+<head>
+<script>
+function notice(elm) {
+    var req = new XMLHttpRequest();
+    req.open('GET', 'http://127.0.0.1:8088/play/' + encodeURI(encodeURIComponent(elm.href)));
+    req.send();
+    return false;
+}
+</script>
+</head>
+<body>
 <form method="post" action="/%s" enctype="multipart/form-data">
 Attachment: <input type=file name="attachment"><br>
 New Folder: <input type=input name="newfolder"><br>
@@ -234,8 +245,15 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File, ddot os.FileIn
         // part of the URL path, and not indicate the start of a query
         // string or fragment.
         us := url.URL{Path: name}
-        fmt.Fprintf(w, "<td><a href=\"%s\">%s</a></td>\n",
-                    us.String(), html.EscapeString(name))
+        oc := ""
+        switch path.Ext(name) {
+        case ".rmvb", ".mkv", ".flv", ".webm":
+            oc = ` onclick="return notice(this);"`
+        default:
+            oc = ""
+        }
+        fmt.Fprintf(w, "<td><a href=\"%s\"%s>%s</a></td>\n",
+                    us.String(), oc, html.EscapeString(name))
         fmt.Fprintf(w, "<td style='padding-left:1em;'>%s</td>\n",
                     d.ModTime().Format("2006-01-02 15:04:05"))
         fmt.Fprintf(w, "<td align='right' title='%d' " +
