@@ -116,7 +116,7 @@ func hUploadPage(w http.ResponseWriter, r *http.Request, dir string) {
 <script>
 function notice(elm) {
     var req = new XMLHttpRequest();
-    req.open('GET', 'http://127.0.0.1:8088/play/' + encodeURI(encodeURIComponent(elm.href)));
+    req.open('GET', 'http://127.0.0.1:8080/play/' + encodeURI(encodeURIComponent(elm.href)));
     req.send();
     return false;
 }
