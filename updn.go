@@ -299,7 +299,11 @@ func (fh *fileHandler)ServeHTTP(w http.ResponseWriter, r *http.Request) {
     }
 
    if d.IsDir() {
-        dirList(w, r, f, ddot)
+        if strings.HasSuffix(upath, "/") {
+            dirList(w, r, f, ddot)
+        } else {
+            http.Redirect(w, r, upath + "/", http.StatusMovedPermanently)
+        }
         return
     }
     http.ServeContent(w, r, d.Name(), d.ModTime(), f)
